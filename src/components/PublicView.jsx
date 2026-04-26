@@ -126,10 +126,11 @@ export default function PublicView() {
               {schedule.name === '休日' ? (
                 <span className="closed">定休日</span>
               ) : (
-                <span className="open">
-                  {timeUtils.toTimeString(schedule.start_time)}
-                </span>
-              )}
+               <div className="time-range">
+  <span className="open">{timeUtils.toTimeString(schedule.start_time)}</span>
+  <span className="separator">〜</span>
+  <span className="close">{timeUtils.toTimeString(schedule.end_time)}</span>
+</div>              )}
             </div>
           )}
         </div>
