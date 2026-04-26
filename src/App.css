@@ -1303,3 +1303,9 @@ html, body {
     justify-content: center;
   }
 }
+
+/* 終了時間の色を開始時間と同じに */
+.schedule-time .close {
+  color: var(--primary-dark);
+  font-weight: 600;
+}
