@@ -126,11 +126,14 @@ export default function AdminDashboard({ onLogout }) {
       .from('calendar_entries')
       .select('entry_date')
       .gte('entry_date', `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`)
-      .lt('entry_date', `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}-01`)
+      .lte('entry_date', `${nextYear}-${String(nextMonth).padStart(2, '0')}-31`)
+
+    // 既に存在する日付のセットを作成
+    const existingDates = new Set(existingData?.map(d => d.entry_date) || [])
 
     // 既に存在するデータは除外
     const dataToInsert = nextMonthData.filter(
-      newEntry => !existingData?.some(existing => existing.entry_date === newEntry.entry_date)
+      newEntry => !existingDates.has(newEntry.entry_date)
     )
 
     if (dataToInsert.length === 0) {
