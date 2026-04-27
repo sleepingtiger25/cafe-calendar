@@ -16,6 +16,7 @@ export default function PublicView() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [patterns, setPatterns] = useState([])
   const [events, setEvents] = useState([])
+  const [calendarEntries, setCalendarEntries] = useState({})
   const [holidays, setHolidays] = useState([])
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [loading, setLoading] = useState(true)
