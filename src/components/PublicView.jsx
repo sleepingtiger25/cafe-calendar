@@ -51,28 +51,13 @@ export default function PublicView() {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay()
   }
 
-  const getScheduleForDate = (dateString) => {
-    // イベントがあればイベント優先
-    const dayEvents = events.filter(e => e.event_date === dateString)
-    if (dayEvents.length > 0) return null
-
-    const dayOfWeek = new Date(dateString).getDay()
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-    const isHoliday = holidays.includes(dateString)
-
-    // 祝日または日曜日は「土日祝日」パターンを使用
-    if (isHoliday || (dayOfWeek === 0)) {
-      return patterns.find(p => p.name.includes('土日祝'))
-    }
-
-    // 土曜日も「土日祝日」パターン
-    if (isWeekend) {
-      return patterns.find(p => p.name.includes('土日祝'))
-    }
-
-    // 通常営業
-    return patterns.find(p => p.name === '通常営業')
+ const getScheduleForDate = (dateString) => {
+  // calendar_entries があればそれを使用
+  if (calendarEntries[dateString]) {
+    return calendarEntries[dateString].activePattern
   }
+  return null
+}
 
   const renderCalendarDays = () => {
     const daysInMonth = getDaysInMonth(currentDate)
