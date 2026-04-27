@@ -17,6 +17,7 @@ export default function PublicView() {
   const [patterns, setPatterns] = useState([])
   const [events, setEvents] = useState([])
   const [calendarEntries, setCalendarEntries] = useState({})
+  const [holidays, setHolidays] = useState([])
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -25,45 +26,50 @@ export default function PublicView() {
   }, [currentDate])
 
   const loadData = async () => {
-  try {
-    setLoading(true)
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth() + 1
+    try {
+      setLoading(true)
+      const year = currentDate.getFullYear()
+      const month = currentDate.getMonth() + 1
 
-    // カレンダーエントリを取得
-    const { data: entries } = await supabase
-      .from('calendar_entries')
-      .select(`
-        *,
-        pattern:pattern_id(id, name, start_time, end_time, color),
-        override_pattern:override_pattern_id(id, name, start_time, end_time, color)
-      `)
-      .gte('entry_date', `${year}-${String(month).padStart(2, '0')}-01`)
-      .lt('entry_date', `${year}-${String(month + 1).padStart(2, '0')}-01`)
+      // 祝日を取得
+      const holidaysData = await getJapanHolidays(year)
+      setHolidays(holidaysData)
 
-    const entriesMap = {}
-    if (entries) {
-      entries.forEach(entry => {
-        const activePattern = entry.is_manual_override ? entry.override_pattern : entry.pattern
-        entriesMap[entry.entry_date] = { ...entry, activePattern }
-      })
+      // カレンダーエントリを取得
+      const { data: entries } = await supabase
+        .from('calendar_entries')
+        .select(`
+          *,
+          pattern:pattern_id(id, name, start_time, end_time, color),
+          override_pattern:override_pattern_id(id, name, start_time, end_time, color)
+        `)
+        .gte('entry_date', `${year}-${String(month).padStart(2, '0')}-01`)
+        .lt('entry_date', `${year}-${String(month + 1).padStart(2, '0')}-01`)
+
+      const entriesMap = {}
+      if (entries) {
+        entries.forEach(entry => {
+          const activePattern = entry.is_manual_override ? entry.override_pattern : entry.pattern
+          entriesMap[entry.entry_date] = { ...entry, activePattern }
+        })
+      }
+      setCalendarEntries(entriesMap)
+
+      // パターンとイベントも取得
+      const [patternsData, eventsData] = await Promise.all([
+        scheduleApi.getAll(),
+        eventApi.getAll()
+      ])
+      
+      setPatterns(patternsData)
+      setEvents(eventsData)
+    } catch (error) {
+      console.error('データ読み込みエラー:', error)
+    } finally {
+      setLoading(false)
     }
-    setCalendarEntries(entriesMap)
-
-    // パターンとイベントも取得
-    const [patternsData, eventsData] = await Promise.all([
-      scheduleApi.getAll(),
-      eventApi.getAll()
-    ])
-    
-    setPatterns(patternsData)
-    setEvents(eventsData)
-  } catch (error) {
-    console.error('データ読み込みエラー:', error)
-  } finally {
-    setLoading(false)
   }
-}
+
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
   }
@@ -72,13 +78,13 @@ export default function PublicView() {
     return new Date(date.getFullYear(), date.getMonth(), 1).getDay()
   }
 
- const getScheduleForDate = (dateString) => {
-  // calendar_entries があればそれを使用
-  if (calendarEntries[dateString]) {
-    return calendarEntries[dateString].activePattern
+  const getScheduleForDate = (dateString) => {
+    // calendar_entries があればそれを使用
+    if (calendarEntries[dateString]) {
+      return calendarEntries[dateString].activePattern
+    }
+    return null
   }
-  return null
-}
 
   const renderCalendarDays = () => {
     const daysInMonth = getDaysInMonth(currentDate)
@@ -132,11 +138,12 @@ export default function PublicView() {
               {schedule.name === '休日' ? (
                 <span className="closed">定休日</span>
               ) : (
-               <div className="time-range">
-  <span className="open">{timeUtils.toTimeString(schedule.start_time)}</span>
-  <span className="separator">〜</span>
-  <span className="close">{timeUtils.toTimeString(schedule.end_time)}</span>
-</div>              )}
+                <div className="time-range">
+                  <span className="open">{timeUtils.toTimeString(schedule.start_time)}</span>
+                  <span className="separator">〜</span>
+                  <span className="close">{timeUtils.toTimeString(schedule.end_time)}</span>
+                </div>
+              )}
             </div>
           )}
         </div>
