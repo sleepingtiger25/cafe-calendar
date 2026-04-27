@@ -8,7 +8,7 @@ import {
   ExternalLink,
   X
 } from 'lucide-react'
-import { scheduleApi, eventApi } from '../lib/supabase'
+import { supabase, scheduleApi, eventApi } from '../lib/supabase'
 import { getJapanHolidays } from '../lib/holidays'
 import { dateUtils, timeUtils } from '../lib/utils'
 
