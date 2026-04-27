@@ -9,7 +9,7 @@ import {
   X
 } from 'lucide-react'
 import { scheduleApi, eventApi } from '../lib/supabase'
-import { getJapanHolidays, getMonthHolidays } from '../lib/holidays'
+import { getJapanHolidays} from '..lib/holidays'
 import { dateUtils, timeUtils } from '../lib/utils'
 
 export default function PublicView() {
@@ -17,7 +17,6 @@ export default function PublicView() {
   const [patterns, setPatterns] = useState([])
   const [events, setEvents] = useState([])
   const [calendarEntries, setCalendarEntries] = useState({})
-  const [holidays, setHolidays] = useState([])
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -26,24 +25,45 @@ export default function PublicView() {
   }, [currentDate])
 
   const loadData = async () => {
-    try {
-      setLoading(true)
-      const [patternsData, eventsData, holidaysData] = await Promise.all([
-        scheduleApi.getAll(),
-        eventApi.getAll(),
-        getMonthHolidays(currentDate.getFullYear(), currentDate.getMonth() + 1)
-      ])
-      
-      setPatterns(patternsData)
-      setEvents(eventsData)
-      setHolidays(holidaysData)
-    } catch (error) {
-      console.error('データ読み込みエラー:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  try {
+    setLoading(true)
+    const year = currentDate.getFullYear()
+    const month = currentDate.getMonth() + 1
 
+    // カレンダーエントリを取得
+    const { data: entries } = await supabase
+      .from('calendar_entries')
+      .select(`
+        *,
+        pattern:pattern_id(id, name, start_time, end_time, color),
+        override_pattern:override_pattern_id(id, name, start_time, end_time, color)
+      `)
+      .gte('entry_date', `${year}-${String(month).padStart(2, '0')}-01`)
+      .lt('entry_date', `${year}-${String(month + 1).padStart(2, '0')}-01`)
+
+    const entriesMap = {}
+    if (entries) {
+      entries.forEach(entry => {
+        const activePattern = entry.is_manual_override ? entry.override_pattern : entry.pattern
+        entriesMap[entry.entry_date] = { ...entry, activePattern }
+      })
+    }
+    setCalendarEntries(entriesMap)
+
+    // パターンとイベントも取得
+    const [patternsData, eventsData] = await Promise.all([
+      scheduleApi.getAll(),
+      eventApi.getAll()
+    ])
+    
+    setPatterns(patternsData)
+    setEvents(eventsData)
+  } catch (error) {
+    console.error('データ読み込みエラー:', error)
+  } finally {
+    setLoading(false)
+  }
+}
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
   }
