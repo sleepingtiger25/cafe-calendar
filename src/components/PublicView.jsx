@@ -29,7 +29,7 @@ export default function PublicView() {
     try {
       setLoading(true)
       const year = currentDate.getFullYear()
-      const month = currentDate.getMonth() + 1
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0')
 
       // 祝日を取得
       const holidaysData = await getJapanHolidays(year)
